@@ -81,8 +81,10 @@ def install_requirements(options):
         "--disable-pip-version-check",
         "--retries",
         str(options.retries),
+        "--resume-retries",
+        str(options.resume_retries),
         "--timeout",
-        "60",
+        "120",
     ]
     run_install(
         pip
@@ -152,9 +154,12 @@ def parse_args():
     parser.add_argument("--avatar", action="store_true")
     parser.add_argument("--skip-flash-attn", action="store_true")
     parser.add_argument("--retries", type=int, default=5)
+    parser.add_argument("--resume-retries", type=int, default=20)
     options = parser.parse_args()
     if options.retries < 0:
         parser.error("--retries must be zero or greater")
+    if options.resume_retries < 0:
+        parser.error("--resume-retries must be zero or greater")
     return options
 
 
