@@ -1,192 +1,275 @@
-# ComfyUI Face Swap on RunPod
+# LongCat-Video Avatar 1.5 on RunPod
 
-This repository contains a ComfyUI workflow for replacing the face in a single-person talking-head video while preserving the original body, background, lighting, and audio.
+This runbook describes the validated Avatar 1.5 INT8 setup on an NVIDIA A40.
+The tested configuration produced a 93-frame, 3.72-second video successfully.
 
-The workflow is [FaceSwap_HQ_L4_24GB.json](FaceSwap_HQ_L4_24GB.json). It uses ComfyUI, VideoHelperSuite, FaceTools, ReActor, and FaceFilter.
+## Validated configuration
 
-## RunPod ComfyUI template setup
+- GPU: NVIDIA A40, 48 GB VRAM
+- System RAM: 64 GB or more recommended
+- CUDA: 12.4
+- Python: 3.10
+- PyTorch: 2.6.0+cu124
+- FlashAttention: 2.7.4.post1
+- Model: Avatar 1.5 INT8 with DMD LoRA
 
-Use an NVIDIA Pod with a Network Volume mounted at `/workspace`. Expose TCP port `8188` through RunPod. The ComfyUI template already provides ComfyUI, Python, PyTorch, and the NVIDIA runtime, so do not clone a second ComfyUI installation, create a second virtual environment, or reinstall PyTorch.
+The model files use about 42 GB in total:
 
-### 1. Clone this repository
+- Avatar 1.5 files: about 21 GB
+- Foundational LongCat files: about 22 GB
 
-Run these commands once in the Pod terminal:
+Keep the weights on a RunPod Network Volume. Do not bake them into the Docker
+image. The image stays smaller, and future pods can reuse the same volume.
 
-```bash
-cd /workspace
-if [ ! -d /workspace/facefusion_faceswap/.git ]; then
-  git clone --depth 1 https://github.com/pjain-github/facefusion_app.git /workspace/facefusion_faceswap
-fi
-cd /workspace/facefusion_faceswap
-```
+## Recommended deployment
 
-The repository name still contains `facefusion`, but FaceFusion is not used.
+Use the Docker image and RunPod template files in this repository:
 
-### 2. Verify the template Python and ComfyUI root
+- `Dockerfile` builds the CUDA runtime and project-local `.venv`.
+- `docker/quantization.py` is the working memory-efficient INT8 loader.
+- `docker/entrypoint.sh` starts Jupyter and SSH, or runs inference commands.
+- `download_weights.py` downloads only the model files required by Avatar 1.5.
+- `runpod-template.json` contains the template settings.
 
-Use the same Python executable that starts ComfyUI:
+### Build and push with GitHub Actions
 
-```bash
-which python
-python --version
-python -c "import sys, torch; print(sys.executable); print('CUDA:', torch.cuda.is_available())"
-```
+The repository includes `.github/workflows/publish-image.yml`. GitHub Actions
+builds the image on an x86_64 runner and pushes it directly to GHCR, so Docker
+Desktop and local disk space are not required.
 
-The CUDA check should print `CUDA: True`. Set `COMFYUI` to the actual ComfyUI directory used by the template:
+1. Push this repository to GitHub.
+2. Open the repository's **Actions** tab.
+3. Select **Publish LongCat image**.
+4. Choose **Run workflow** on the desired branch.
 
-```bash
-export COMFYUI=/workspace/ComfyUI
-test -f "$COMFYUI/main.py"
-```
-
-If the template uses another location, change `COMFYUI` before running the remaining commands.
-
-### 3. Install the custom nodes
-
-The workflow needs these nodes:
-
-- `ComfyUI-VideoHelperSuite`
-- `ComfyUI-FaceFilter`
-- `comfyui_facetools` or `ComfyUI FaceTools`
-- `ComfyUI-ReActor`
-
-The preferred method is **Manager -> Custom Nodes Manager** in the ComfyUI interface. Search for and install each node, then restart ComfyUI.
-
-If Manager is unavailable, install them manually:
-
-```bash
-mkdir -p "$COMFYUI/custom_nodes"
-cd "$COMFYUI/custom_nodes"
-[ -d ComfyUI-VideoHelperSuite ] || git clone --depth 1 https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite.git
-[ -d ComfyUI-FaceFilter ] || git clone --depth 1 https://github.com/Kidev/ComfyUI-FaceFilter.git
-[ -d comfyui_facetools ] || git clone --depth 1 https://github.com/dchatel/comfyui_facetools.git
-[ -d ComfyUI-ReActor ] || git clone --depth 1 https://github.com/Gourieff/ComfyUI-ReActor.git
-```
-
-Install the repository's additional dependencies with the same Python used by ComfyUI. Do not reinstall PyTorch:
-
-```bash
-cd /workspace/facefusion_faceswap
-python -m pip install -r requirements.txt
-```
-
-Install node-specific requirements only when a file exists or the ComfyUI startup log reports a missing module:
-
-```bash
-for requirements in \
-  "$COMFYUI/custom_nodes/ComfyUI-VideoHelperSuite/requirements.txt" \
-  "$COMFYUI/custom_nodes/ComfyUI-FaceFilter/requirements.txt" \
-  "$COMFYUI/custom_nodes/ComfyUI-ReActor/requirements.txt"; do
-  if [ -f "$requirements" ]; then python -m pip install -r "$requirements"; fi
-done
-```
-
-Restart ComfyUI after installing nodes or packages. Use the template's normal startup command; if you need to start it manually, use:
-
-```bash
-cd "$COMFYUI"
-python main.py --listen 0.0.0.0 --port 8188
-```
-
-## Models
-
-Create the model directories first:
-
-```bash
-mkdir -p /workspace/ComfyUI/input /workspace/ComfyUI/output
-mkdir -p /workspace/ComfyUI/models/insightface/models/antelopev2
-mkdir -p /workspace/ComfyUI/models/facerestore_models
-mkdir -p /workspace/ComfyUI/models/landmarks
-mkdir -p /workspace/ComfyUI/models/bisenet
-```
-
-### ReActor model files
-
-These are model files, not Python packages. Download them from the official ReActor dataset and place them at the exact paths below:
-
-The names `swap_model` and `face_restore_model` are ReActor node input names, not directory names. Do not rename these folders to `swap_model` or `face_restore_models`; ReActor expects the directory name `facerestore_models`.
+The workflow publishes:
 
 ```text
-/workspace/ComfyUI/models/insightface/inswapper_128.onnx
-/workspace/ComfyUI/models/facerestore_models/GPEN-BFR-1024.onnx
+ghcr.io/pjain-github/longcat-video:avatar-1.5
+ghcr.io/pjain-github/longcat-video:latest
 ```
 
-RunPod may not have `wget`, and Hugging Face redirects large files to a storage backend. Use `curl -L` so the redirect is followed:
+The workflow uses the built-in `GITHUB_TOKEN` with package write permission.
+After the first successful run, open the package's settings under the GitHub
+profile and set its visibility to **Public**. A public image can be pulled by
+RunPod without extra registry credentials. Keep the package private only if you
+configure RunPod with matching GHCR image-pull credentials.
+
+For a local or other x86_64 builder, the equivalent command is:
 
 ```bash
-curl -L --fail --retry 3 \
-  -o /workspace/ComfyUI/models/insightface/inswapper_128.onnx \
-  'https://huggingface.co/datasets/Gourieff/ReActor/resolve/main/models/inswapper_128.onnx?download=true'
-
-curl -L --fail --retry 3 \
-  -o /workspace/ComfyUI/models/facerestore_models/GPEN-BFR-1024.onnx \
-  'https://huggingface.co/datasets/Gourieff/ReActor/resolve/main/models/facerestore_models/GPEN-BFR-1024.onnx?download=true'
-
-test -s /workspace/ComfyUI/models/insightface/inswapper_128.onnx
-test -s /workspace/ComfyUI/models/facerestore_models/GPEN-BFR-1024.onnx
-ls -lh \
-  /workspace/ComfyUI/models/insightface/inswapper_128.onnx \
-  /workspace/ComfyUI/models/facerestore_models/GPEN-BFR-1024.onnx
+docker login ghcr.io
+docker buildx build --platform linux/amd64 \
+  --tag ghcr.io/pjain-github/longcat-video:avatar-1.5 \
+  --push .
 ```
 
-If a model still does not appear, verify that the running ComfyUI process uses this same root and that ReActor sees the files directly in these folders:
+### Create the RunPod template
+
+Use `runpod-template.json` or enter these values in the RunPod UI:
+
+- Custom image: `ghcr.io/pjain-github/longcat-video:avatar-1.5`
+- GPU: NVIDIA A40 or another GPU with at least 48 GB VRAM
+- Container disk: 30 GB
+- Network Volume: at least 80 GB
+- Volume mount: `/workspace`
+- Exposed ports: `8888/http,22/tcp`
+- Jupyter: enabled
+- SSH: enabled
+- `JUPYTER_TOKEN`: set a private value in RunPod
+
+Do not mount the Network Volume over `/opt/LongCat-Video`; that is where the
+image stores the application code. The volume should be mounted at `/workspace`.
+
+### Download weights after startup
+
+Connect to the new pod and run:
 
 ```bash
-find /workspace/ComfyUI/models -maxdepth 2 -type f \
-  \( -name 'inswapper_128.onnx' -o -name 'GPEN-BFR-1024.onnx' \) -ls
+cd /opt/LongCat-Video
+.venv/bin/python download_weights.py --destination /workspace/weights
 ```
 
-Expected approximate sizes are 554 MB for `inswapper_128.onnx` and 285 MB for `GPEN-BFR-1024.onnx`. If either file is only a few kilobytes, it is an error response rather than a model and should be deleted and downloaded again.
+The script is resumable and idempotent. It downloads both the Avatar 1.5
+checkpoint and the foundational LongCat files, while excluding unused files
+such as FP32, PyTorch binary, and Flax checkpoints.
 
-ReActor may also download `buffalo_l` on its first use. If it does not, install it through ComfyUI Manager or place the model pack under the ReActor/InsightFace model directory shown in the ReActor startup log.
+For only the Avatar files:
 
-### FaceFilter model
+```bash
+.venv/bin/python download_weights.py \
+  --destination /workspace/weights \
+  --avatar-only
+```
 
-FaceFilter is configured in this workflow to use the `antelopev2` InsightFace pack. Install it through ComfyUI Manager, or download the `antelopev2` pack from its official model source and extract the pack so its files are directly inside:
+The tested avatar workflow needs both Avatar 1.5 and foundational files, so use
+the default command unless you already have the foundational model.
+
+Verify the download:
+
+```bash
+du -sh /workspace/weights/LongCat-Video-Avatar-1.5
+# approximately 21G
+
+du -sh /workspace/weights/LongCat-Video
+# approximately 22G
+```
+
+## Manual setup on an existing pod
+
+Use this only when running without the Docker image. The working server used a
+project-local `.venv` at `/workspace/LongCat-Video/.venv`.
+
+Install system packages:
+
+```bash
+apt-get update
+apt-get install -y git ffmpeg libsndfile1 tmux
+```
+
+Create or activate Python 3.10:
+
+```bash
+python3.10 -m venv /workspace/LongCat-Video/.venv
+source /workspace/LongCat-Video/.venv/bin/activate
+```
+
+Install dependencies from this repository:
+
+```bash
+cd /path/to/longcat-video
+python setup.py install_requirements \
+  --avatar \
+  --project-dir /workspace/LongCat-Video
+```
+
+The installer uses CUDA 12.4 by default. The validated alternative channels
+are `--cuda cu126` and `--cuda cu128`.
+
+Copy the working loader into the LongCat checkout if the checkout is not the
+same source tree:
+
+```bash
+cp docker/quantization.py \
+  /workspace/LongCat-Video/longcat_video/modules/quantization.py
+```
+
+Then download the weights with `download_weights.py`, using the persistent
+`/workspace/weights` directory.
+
+## Input file
+
+Create a JSON file such as `/workspace/my_inputs/my_video.json`:
+
+```json
+{
+  "prompt": "Professional technology YouTuber speaking naturally to camera.",
+  "cond_image": "/workspace/my_inputs/me.webp",
+  "cond_audio": {
+    "person1": "/workspace/my_inputs/voice.mp3"
+  }
+}
+```
+
+Prompts must be a single line. WEBP images and MP3 audio are supported.
+
+## Run Avatar 1.5
+
+Always use `torchrun`, not direct Python. From the Docker image:
+
+```bash
+cd /opt/LongCat-Video
+.venv/bin/torchrun --nproc_per_node=1 \
+  run_demo_avatar_single_audio_to_video.py \
+  --input_json /workspace/my_inputs/my_video.json \
+  --output_dir /workspace/outputs/my_video \
+  --resolution 480p \
+  --num_segments 1 \
+  --stage_1 ai2v \
+  --checkpoint_dir /workspace/weights/LongCat-Video-Avatar-1.5 \
+  --model_type avatar-v1.5 \
+  --use_int8 \
+  --use_distill
+```
+
+One segment is 93 frames, approximately 3.72 seconds at 25 FPS. Increase
+`--num_segments` for longer audio. A six-segment run is approximately 22.3
+seconds of generated video.
+
+For long jobs, use tmux:
+
+```bash
+tmux new -s longcat
+# run the command above
+tmux detach -s longcat
+tmux attach -t longcat
+```
+
+## Verified smoke test
+
+The bundled example was tested successfully with:
+
+```bash
+cd /workspace/LongCat-Video
+.venv/bin/torchrun --nproc_per_node=1 \
+  run_demo_avatar_single_audio_to_video.py \
+  --input_json assets/avatar/single_example_1.json \
+  --output_dir outputs/avatar-smoke-test \
+  --resolution 480p \
+  --num_segments 1 \
+  --stage_1 ai2v \
+  --checkpoint_dir ./weights/LongCat-Video-Avatar-1.5 \
+  --model_type avatar-v1.5 \
+  --use_int8 \
+  --use_distill
+```
+
+It produced:
 
 ```text
-/workspace/ComfyUI/models/insightface/models/antelopev2/
+outputs/avatar-smoke-test/ai2v_demo_1.mp4
 ```
 
-Do not create an extra nested directory such as `antelopev2/antelopev2/`. The FaceFilter node must list `antelopev2` after ComfyUI is restarted.
-
-### FaceTools models
-
-`CropFaces` is configured to use `BiSeNet`. FaceTools needs the FaceAlignment landmark model and the BiSeNet model. Follow the model links in the FaceTools repository README and place them here:
-
-```text
-/workspace/ComfyUI/models/landmarks/
-/workspace/ComfyUI/models/bisenet/
-```
-
-The exact filenames can vary by FaceTools revision; keep the filenames supplied by the model download instructions. Restart ComfyUI after adding models.
-
-## Load and run the workflow
-
-Upload the source face image and input video through the ComfyUI web interface, or copy them into `/workspace/ComfyUI/input/`. ComfyUI writes generated videos to `/workspace/ComfyUI/output/`.
-
-1. Open the ComfyUI URL on RunPod.
-2. Drag [FaceSwap_HQ_L4_24GB.json](FaceSwap_HQ_L4_24GB.json) into ComfyUI.
-3. Select a clear source face in `LoadImage`.
-4. Select the input video in `VHS_LoadVideo`.
-5. Set `VHS_VideoCombine.frame_rate` to the input video FPS. The workflow currently assumes `30` FPS.
-6. Queue a short test clip before rendering the complete video.
-
-The original video frames enter `WarpFacesBack`, so the output retains the original background and body. Only the detected face crop is replaced. The original audio is passed through to the output video.
-
-## Single-face recommendation
-
-For a video containing only you, `FaceFilterNode` is optional. The current workflow keeps it so identity filtering can reject false detections, but it can produce a black placeholder when the face is not recognized. If that causes black face patches during head turns or occlusion, connect `CropFaces.crops` directly to `ReActorFaceSwap.input_image` and bypass FaceFilter.
-
-Keep `VHS_BatchManager.frames_per_batch` at `1` for a 24 GB GPU while testing. Increase it only after confirming that VRAM remains available. If the face edge is too hard, increase the four `FeatherMask` values from `32` to `64`; if the face looks excessively soft, reduce them.
+The output was 768x512, 93 frames, 3.72 seconds, with audio.
 
 ## Troubleshooting
 
-- **Custom node not found:** confirm the repository exists under `/workspace/ComfyUI/custom_nodes`, then restart ComfyUI.
-- **Model not found:** check the directory and filename against the paths above. Models must not be one directory deeper than shown.
-- **Black face patch:** bypass FaceFilter or lower its threshold only after checking the `DEBUG` output.
-- **Audio or duration is wrong:** make the output frame rate match the input FPS. Do not force `30` FPS for a 24 or 60 FPS source unless that conversion is intentional.
-- **Out of memory:** keep `frames_per_batch` at `1`, reduce `CropFaces` from `768` to `512`, or select a smaller face-restoration model.
-- **Video does not play everywhere:** H.265 10-bit is efficient but has limited compatibility. Use H.264 with `yuv420p` for broadly compatible output.
+### `KeyError: RANK`
 
-Only process media for which you have the necessary rights and consent. If a real person's face is used, follow applicable law and disclose synthetic alterations where appropriate.
+The demo was started with direct Python. Use `torchrun --nproc_per_node=1`.
+
+### `JSONDecodeError`
+
+The prompt contains a newline or invalid JSON. Keep the prompt on one line and
+validate the JSON before running.
+
+### `scheduler_config.json` missing
+
+The scheduler file is included by `download_weights.py`. Do not delete the
+`scheduler` directory from either model tree.
+
+### `SIGKILL` or exit code `-9`
+
+The unmodified upstream INT8 loader constructs a large full-precision model
+before quantization. This repository's `docker/quantization.py` uses a meta
+device, replaces linear layers before allocation, and loads safetensors shards
+one at a time. Make sure the working loader is present in the checkout.
+
+### ONNX Runtime CUDA warning
+
+The tested run reported that `CUDAExecutionProvider` was unavailable, so vocal
+separation ran on CPU. This is a performance warning; the avatar generation
+still completed successfully. The tested run took about two minutes for vocal
+separation and about four minutes for one 480p segment.
+
+### Disk quota exceeded
+
+Use a larger Network Volume. Clear only disposable caches if needed:
+
+```bash
+pip cache purge
+rm -rf /workspace/.cache
+```
+
+Do not delete completed model shards to recover from an interrupted download;
+rerun `download_weights.py` instead.

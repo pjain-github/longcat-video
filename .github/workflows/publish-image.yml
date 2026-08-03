@@ -1,4 +1,4 @@
-name: Publish FaceFusion image
+name: Publish LongCat image
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+  IMAGE_NAME: pjain-github/longcat-video
 
 jobs:
   publish:
@@ -37,7 +37,8 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=raw,value=3.7.1,enable={{is_default_branch}}
+            type=raw,value=avatar-1.5,enable={{is_default_branch}}
+            type=raw,value=latest,enable={{is_default_branch}}
             type=ref,event=tag
             type=sha
 
@@ -46,6 +47,7 @@ jobs:
         with:
           context: .
           file: ./Dockerfile
+          platforms: linux/amd64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

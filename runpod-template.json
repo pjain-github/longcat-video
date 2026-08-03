@@ -1,0 +1,27 @@
+{
+  "name": "LongCat Video Avatar 1.5",
+  "imageName": "ghcr.io/pjain-github/longcat-video:avatar-1.5",
+  "dockerArgs": "",
+  "containerDiskInGb": 30,
+  "volumeInGb": 80,
+  "volumeMountPath": "/workspace",
+  "ports": "8888/http,22/tcp",
+  "env": [
+    {
+      "key": "JUPYTER_TOKEN",
+      "value": "SET_IN_RUNPOD"
+    },
+    {
+      "key": "HF_HUB_DISABLE_XET",
+      "value": "1"
+    },
+    {
+      "key": "HF_HUB_ENABLE_HF_TRANSFER",
+      "value": "0"
+    }
+  ],
+  "startJupyter": true,
+  "startSsh": true,
+  "isServerless": false,
+  "supportNetworkVolume": true
+}
