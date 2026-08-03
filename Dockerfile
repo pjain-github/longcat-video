@@ -1,9 +1,10 @@
-FROM nvidia/cuda:12.4.1-cudnn-devel-ubuntu22.04
+FROM pytorch/pytorch:2.6.0-cuda12.4-cudnn9-devel
 
 ARG DEBIAN_FRONTEND=noninteractive
 
 ENV HF_HUB_DISABLE_XET=1 \
     HF_HUB_ENABLE_HF_TRANSFER=0 \
+    PIP_NO_CACHE_DIR=1 \
     PYTHONUNBUFFERED=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1
 
@@ -13,10 +14,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     libsndfile1 \
     openssh-server \
-    python3.10 \
-    python3.10-dev \
-    python3.10-venv \
-    python3-pip \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /opt/LongCat-Video
@@ -26,10 +23,10 @@ RUN git clone --single-branch --branch main \
 
 COPY setup.py /tmp/longcat-setup.py
 
-RUN python3.10 -m venv .venv \
+RUN /opt/conda/bin/python -m venv --system-site-packages .venv \
     && .venv/bin/python -m pip install --upgrade pip setuptools wheel \
     && .venv/bin/python /tmp/longcat-setup.py install_requirements \
-        --avatar --project-dir /opt/LongCat-Video \
+        --avatar --skip-torch --project-dir /opt/LongCat-Video \
     && .venv/bin/python -m pip install jupyterlab
 
 # This is the working memory-efficient INT8 loader from the validated pod.

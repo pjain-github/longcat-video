@@ -8,8 +8,8 @@ The tested configuration produced a 93-frame, 3.72-second video successfully.
 - GPU: NVIDIA A40, 48 GB VRAM
 - System RAM: 64 GB or more recommended
 - CUDA: 12.4
-- Python: 3.10
-- PyTorch: 2.6.0+cu124
+- Manual pod Python: 3.10
+- Docker base: PyTorch 2.6.0 with CUDA 12.4 and cuDNN 9
 - FlashAttention: 2.7.4.post1
 - Model: Avatar 1.5 INT8 with DMD LoRA
 
@@ -25,7 +25,7 @@ image. The image stays smaller, and future pods can reuse the same volume.
 
 Use the Docker image and RunPod template files in this repository:
 
-- `Dockerfile` builds the CUDA runtime and project-local `.venv`.
+- `Dockerfile` uses the official PyTorch CUDA image and a project-local `.venv`.
 - `docker/quantization.py` is the working memory-efficient INT8 loader.
 - `docker/entrypoint.sh` starts Jupyter and SSH, or runs inference commands.
 - `download_weights.py` downloads only the model files required by Avatar 1.5.
@@ -54,6 +54,11 @@ After the first successful run, open the package's settings under the GitHub
 profile and set its visibility to **Public**. A public image can be pulled by
 RunPod without extra registry credentials. Keep the package private only if you
 configure RunPod with matching GHCR image-pull credentials.
+
+The Docker build starts from the official PyTorch image, which already contains
+PyTorch and its CUDA libraries. This avoids downloading the large cuBLAS wheel
+from `download.pytorch.org`, which can fail on a GitHub runner at a fixed byte
+offset.
 
 For a local or other x86_64 builder, the equivalent command is:
 

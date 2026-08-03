@@ -101,19 +101,31 @@ def install_requirements(options):
         "packaging and build tools",
         project_dir,
     )
-    run_install(
-        pip
-        + [
-            "install",
-            "--index-url",
-            PYTORCH_INDEXES[options.cuda],
-            "torch==2.6.0",
-            "torchvision==0.21.0",
-            "torchaudio==2.6.0",
-        ],
-        f"PyTorch ({options.cuda})",
-        project_dir,
-    )
+    if options.skip_torch:
+        run_install(
+            [
+                sys.executable,
+                "-c",
+                "import torch; assert torch.__version__.startswith('2.6.'), torch.__version__; "
+                "assert torch.version.cuda.startswith('12.4'), torch.version.cuda",
+            ],
+            "preinstalled PyTorch",
+            project_dir,
+        )
+    else:
+        run_install(
+            pip
+            + [
+                "install",
+                "--index-url",
+                PYTORCH_INDEXES[options.cuda],
+                "torch==2.6.0",
+                "torchvision==0.21.0",
+                "torchaudio==2.6.0",
+            ],
+            f"PyTorch ({options.cuda})",
+            project_dir,
+        )
     run_install(
         pip + ["install", "--prefer-binary"] + BASE_REQUIREMENTS,
         "base Python requirements",
@@ -153,6 +165,11 @@ def parse_args():
     )
     parser.add_argument("--avatar", action="store_true")
     parser.add_argument("--skip-flash-attn", action="store_true")
+    parser.add_argument(
+        "--skip-torch",
+        action="store_true",
+        help="use and verify PyTorch already installed in the base environment",
+    )
     parser.add_argument("--retries", type=int, default=5)
     parser.add_argument("--resume-retries", type=int, default=20)
     options = parser.parse_args()
