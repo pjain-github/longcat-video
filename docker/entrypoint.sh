@@ -36,5 +36,5 @@ exec .venv/bin/jupyter lab \
     --ip=0.0.0.0 \
     --port=8888 \
     --ServerApp.allow_origin='*' \
-    --ServerApp.preferred_dir=/workspace \
+    --ServerApp.root_dir=/workspace \
     --IdentityProvider.token="${JUPYTER_TOKEN}"
