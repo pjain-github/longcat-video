@@ -24,6 +24,7 @@ TORCH_RUNTIME_REQUIREMENTS = [
     "filelock",
     "fsspec",
     "jinja2",
+    "nvidia-cusparselt-cu12==0.6.2",
     "networkx",
     "opt-einsum",
     "pillow",
