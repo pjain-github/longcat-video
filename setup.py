@@ -64,7 +64,6 @@ AVATAR_REQUIREMENTS = [
     "tzdata==2025.2",
     "onnx==1.18.0",
     "onnxruntime==1.16.3",
-    "tritonserverclient==0.0.6",
     "openai==1.75.0",
     "cffi==2.0.0",
     "chardet==5.2.0",
