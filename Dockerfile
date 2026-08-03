@@ -29,7 +29,7 @@ COPY setup.py /tmp/longcat-setup.py
 RUN python3.10 -m venv .venv \
     && .venv/bin/python -m pip install --upgrade pip setuptools wheel \
     && .venv/bin/python /tmp/longcat-setup.py install_requirements \
-        --avatar --project-dir /opt/LongCat-Video \
+        --avatar --use-system-cuda --project-dir /opt/LongCat-Video \
     && .venv/bin/python -m pip install jupyterlab
 
 # This is the working memory-efficient INT8 loader from the validated pod.

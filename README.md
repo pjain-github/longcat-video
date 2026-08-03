@@ -56,9 +56,10 @@ profile and set its visibility to **Public**. A public image can be pulled by
 RunPod without extra registry credentials. Keep the package private only if you
 configure RunPod with matching GHCR image-pull credentials.
 
-The Docker build installs PyTorch 2.6.0+cu124 from PyPI. PyPI provides the same
-CUDA-enabled PyTorch release and NVIDIA dependency wheels, while the smaller
-CUDA base leaves enough free space on the GitHub-hosted runner.
+The Docker build installs the PyTorch 2.6.0 Python wheels from PyPI with
+`--no-deps` and uses the CUDA/cuDNN libraries already present in the base image.
+This avoids downloading a second copy of the large NVIDIA wheel stack, which
+otherwise exhausts the GitHub-hosted runner's disk during installation.
 
 For a local or other x86_64 builder, the equivalent command is:
 

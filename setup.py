@@ -20,6 +20,18 @@ PYTORCH_INDEXES = {
 }
 PYPI_INDEX = "https://pypi.org/simple"
 
+TORCH_RUNTIME_REQUIREMENTS = [
+    "filelock",
+    "fsspec",
+    "jinja2",
+    "networkx",
+    "opt-einsum",
+    "pillow",
+    "sympy==1.13.1",
+    "triton==3.2.0",
+    "typing-extensions>=4.10.0",
+]
+
 BASE_REQUIREMENTS = [
     "huggingface_hub==0.36.2",
     "numpy==1.26.4",
@@ -123,6 +135,7 @@ def install_requirements(options):
                 "install",
                 "--index-url",
                 torch_index,
+                *(["--no-deps"] if options.use_system_cuda else []),
                 "torch==2.6.0",
                 "torchvision==0.21.0",
                 "torchaudio==2.6.0",
@@ -130,6 +143,12 @@ def install_requirements(options):
             f"PyTorch ({options.cuda})",
             project_dir,
         )
+        if options.use_system_cuda:
+            run_install(
+                pip + ["install", "--prefer-binary"] + TORCH_RUNTIME_REQUIREMENTS,
+                "PyTorch Python runtime dependencies",
+                project_dir,
+            )
     run_install(
         pip + ["install", "--prefer-binary"] + BASE_REQUIREMENTS,
         "base Python requirements",
@@ -173,6 +192,11 @@ def parse_args():
         "--skip-torch",
         action="store_true",
         help="use and verify PyTorch already installed in the base environment",
+    )
+    parser.add_argument(
+        "--use-system-cuda",
+        action="store_true",
+        help="do not install NVIDIA wheels; use CUDA libraries from the base image",
     )
     parser.add_argument("--retries", type=int, default=5)
     parser.add_argument("--resume-retries", type=int, default=20)
