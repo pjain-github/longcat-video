@@ -18,6 +18,7 @@ PYTORCH_INDEXES = {
     "cu126": "https://download.pytorch.org/whl/cu126",
     "cu128": "https://download.pytorch.org/whl/cu128",
 }
+PYPI_INDEX = "https://pypi.org/simple"
 
 BASE_REQUIREMENTS = [
     "huggingface_hub==0.36.2",
@@ -113,12 +114,15 @@ def install_requirements(options):
             project_dir,
         )
     else:
+        torch_index = (
+            PYPI_INDEX if options.cuda == "cu124" else PYTORCH_INDEXES[options.cuda]
+        )
         run_install(
             pip
             + [
                 "install",
                 "--index-url",
-                PYTORCH_INDEXES[options.cuda],
+                torch_index,
                 "torch==2.6.0",
                 "torchvision==0.21.0",
                 "torchaudio==2.6.0",
