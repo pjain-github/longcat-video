@@ -216,3 +216,13 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# LongCat Media and Outputs
+input/
+output/
+outputs/
+*.mp4
+*.mp3
+*.wav
+*.png
+*.jpg

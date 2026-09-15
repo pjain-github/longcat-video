@@ -22,7 +22,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /opt/LongCat-Video
 
 RUN git clone --single-branch --branch main \
-    https://github.com/meituan-longcat/LongCat-Video .
+    https://github.com/meituan-longcat/LongCat-Video . \
+    && sed -i "s/audio_guidance_scale = 1.0/audio_guidance_scale = args.audio_guidance_scale/g" run_demo_avatar_single_audio_to_video.py
 
 COPY setup.py /tmp/longcat-setup.py
 
@@ -30,7 +31,7 @@ RUN python3.10 -m venv .venv \
     && .venv/bin/python -m pip install --upgrade pip setuptools wheel \
     && .venv/bin/python /tmp/longcat-setup.py install_requirements \
         --avatar --use-system-cuda --project-dir /opt/LongCat-Video \
-    && .venv/bin/python -m pip install jupyterlab
+    && .venv/bin/python -m pip install jupyterlab onnxruntime-gpu accelerate
 
 # This is the working memory-efficient INT8 loader from the validated pod.
 COPY docker/quantization.py longcat_video/modules/quantization.py
