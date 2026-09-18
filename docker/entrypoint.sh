@@ -3,6 +3,16 @@ set -euo pipefail
 
 cd /opt/LongCat-Video
 
+# RunPod can provide a per-Pod public key for direct SSH/SCP access.
+if [[ -n "${SSH_PUBLIC_KEY:-}" ]]; then
+    install -d -m 700 /root/.ssh
+    touch /root/.ssh/authorized_keys
+    if ! grep -qxF "$SSH_PUBLIC_KEY" /root/.ssh/authorized_keys; then
+        printf '%s\n' "$SSH_PUBLIC_KEY" >> /root/.ssh/authorized_keys
+    fi
+    chmod 600 /root/.ssh/authorized_keys
+fi
+
 /usr/sbin/sshd
 
 if [[ "$#" -gt 0 ]]; then

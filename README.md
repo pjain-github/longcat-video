@@ -46,8 +46,7 @@ Desktop and local disk space are not required.
 The workflow publishes:
 
 ```text
-ghcr.io/pjain-github/longcat-video:avatar-1.5
-ghcr.io/pjain-github/longcat-video:latest
+ghcr.io/pjain-github/longcat-video:avatar-1.5-fast
 ```
 
 The workflow uses the built-in `GITHUB_TOKEN` with package write permission.
@@ -74,7 +73,7 @@ docker buildx build --platform linux/amd64 \
 
 Use `runpod-template.json` or enter these values in the RunPod UI:
 
-- Custom image: `ghcr.io/pjain-github/longcat-video:avatar-1.5`
+- Custom image: `ghcr.io/pjain-github/longcat-video:avatar-1.5-fast`
 - GPU: NVIDIA A40 or another GPU with at least 48 GB VRAM
 - Container disk: 30 GB
 - Network Volume: at least 80 GB
@@ -83,6 +82,8 @@ Use `runpod-template.json` or enter these values in the RunPod UI:
 - Jupyter: enabled
 - SSH: enabled
 - `JUPYTER_TOKEN`: set a private value in RunPod
+- `SSH_PUBLIC_KEY`: set to the contents of your local public key file if you
+  want direct public-IP SSH or SCP/SFTP access.
 
 Do not mount the Network Volume over `/opt/LongCat-Video`; that is where the
 image stores the application code. The volume should be mounted at `/workspace`.

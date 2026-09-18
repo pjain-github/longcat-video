@@ -1,6 +1,6 @@
 {
   "name": "LongCat Video Avatar 1.5",
-  "imageName": "ghcr.io/pjain-github/longcat-video:avatar-1.5",
+  "imageName": "ghcr.io/pjain-github/longcat-video:avatar-1.5-fast",
   "dockerArgs": "",
   "containerDiskInGb": 30,
   "volumeInGb": 80,
