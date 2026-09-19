@@ -22,8 +22,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /opt/LongCat-Video
 
 RUN git clone --single-branch --branch main \
-    https://github.com/meituan-longcat/LongCat-Video . \
-    && sed -i "s/audio_guidance_scale = 1.0/audio_guidance_scale = args.audio_guidance_scale/g" run_demo_avatar_single_audio_to_video.py
+    https://github.com/meituan-longcat/LongCat-Video .
 
 COPY setup.py /tmp/longcat-setup.py
 
@@ -34,6 +33,8 @@ RUN python3.10 -m venv .venv \
     && .venv/bin/python -m pip install jupyterlab onnxruntime-gpu accelerate
 
 # This is the working memory-efficient INT8 loader from the validated pod.
+# Do not alter the upstream distilled-avatar guidance logic: Avatar 1.5 sets
+# both text and audio guidance to 1.0 when --use_distill is enabled.
 COPY docker/quantization.py longcat_video/modules/quantization.py
 COPY download_weights.py /opt/LongCat-Video/download_weights.py
 COPY docker/entrypoint.sh /usr/local/bin/longcat-entrypoint.sh

@@ -15,6 +15,16 @@ fi
 
 /usr/sbin/sshd
 
+# Model weights intentionally live on the mounted RunPod Network Volume, not
+# inside this large portable image. The downloader is resumable and reuses
+# complete shards on every later Pod start. SSH is already available above, so
+# startup progress remains observable while a first-time download is running.
+if [[ "${DOWNLOAD_WEIGHTS:-1}" == "1" ]]; then
+    weights_dir="${WEIGHTS_DIR:-/workspace/weights}"
+    echo "Ensuring LongCat Avatar 1.5 INT8 weights are available in ${weights_dir}..."
+    .venv/bin/python download_weights.py --destination "${weights_dir}"
+fi
+
 if [[ "$#" -gt 0 ]]; then
     case "$1" in
         jupyter)

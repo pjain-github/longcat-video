@@ -73,7 +73,7 @@ docker buildx build --platform linux/amd64 \
 
 Use `runpod-template.json` or enter these values in the RunPod UI:
 
-- Custom image: `ghcr.io/pjain-github/longcat-video:avatar-1.5-fast`
+- Custom image: `ghcr.io/pjain-github/longcat-video:avatar-1.5-int8`
 - GPU: NVIDIA A40 or another GPU with at least 48 GB VRAM
 - Container disk: 30 GB
 - Network Volume: at least 80 GB
@@ -88,7 +88,17 @@ Use `runpod-template.json` or enter these values in the RunPod UI:
 Do not mount the Network Volume over `/opt/LongCat-Video`; that is where the
 image stores the application code. The volume should be mounted at `/workspace`.
 
-### Download weights after startup
+### Automatic model setup
+
+The image automatically downloads the complete supported Avatar 1.5 INT8
+inference set to `/workspace/weights` when the Pod starts. Keep the RunPod
+Network Volume mounted at `/workspace`; downloads are resumable and completed
+files are reused on later Pod starts.
+
+Set `DOWNLOAD_WEIGHTS=0` only when you intentionally want to skip this startup
+check. Override `WEIGHTS_DIR` if the volume is mounted elsewhere.
+
+### Download weights manually
 
 Connect to the new pod and run:
 

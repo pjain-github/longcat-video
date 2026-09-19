@@ -1,6 +1,6 @@
 {
   "name": "LongCat Video Avatar 1.5",
-  "imageName": "ghcr.io/pjain-github/longcat-video:avatar-1.5-fast",
+  "imageName": "ghcr.io/pjain-github/longcat-video:avatar-1.5-int8",
   "dockerArgs": "",
   "containerDiskInGb": 30,
   "volumeInGb": 80,
@@ -10,6 +10,14 @@
     {
       "key": "JUPYTER_TOKEN",
       "value": "SET_IN_RUNPOD"
+    },
+    {
+      "key": "DOWNLOAD_WEIGHTS",
+      "value": "1"
+    },
+    {
+      "key": "WEIGHTS_DIR",
+      "value": "/workspace/weights"
     },
     {
       "key": "HF_HUB_DISABLE_XET",

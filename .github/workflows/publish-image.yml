@@ -49,6 +49,7 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
+            type=raw,value=avatar-1.5-int8,enable={{is_default_branch}}
             type=raw,value=avatar-1.5-fast,enable={{is_default_branch}}
             type=ref,event=tag
             type=sha
