@@ -25,6 +25,9 @@ RUN git clone --single-branch --branch main \
     https://github.com/meituan-longcat/LongCat-Video .
 
 COPY setup.py /tmp/longcat-setup.py
+COPY docker/patch_audio_condition.py /tmp/patch_audio_condition.py
+
+RUN python3 /tmp/patch_audio_condition.py run_demo_avatar_single_audio_to_video.py
 
 RUN python3.10 -m venv .venv \
     && .venv/bin/python -m pip install --upgrade pip setuptools wheel \
