@@ -5,7 +5,7 @@ The tested configuration produced a 93-frame, 3.72-second video successfully.
 
 ## Validated configuration
 
-- GPU: NVIDIA A40, 48 GB VRAM
+- GPU: NVIDIA A40 or RTX A6000, 48 GB VRAM
 - System RAM: 64 GB or more recommended
 - CUDA: 12.4
 - Manual pod Python: 3.10
@@ -206,12 +206,28 @@ cd /opt/LongCat-Video
   --checkpoint_dir /workspace/weights/LongCat-Video-Avatar-1.5 \
   --model_type avatar-v1.5 \
   --use_int8 \
-  --use_distill
+  --use_distill \
+  --audio_condition_scale 0.70
 ```
 
 One segment is 93 frames, approximately 3.72 seconds at 25 FPS. Increase
 `--num_segments` for longer audio. A six-segment run is approximately 22.3
 seconds of generated video.
+
+### Softer mouth-motion tests
+
+Avatar 1.5 distilled inference fixes audio CFG at `1.0`; use
+`--audio_condition_scale` to lower the actual audio embedding without slowing
+generation. Start with one 480p segment on an A40 48 GB or RTX A6000 48 GB:
+
+```text
+0.70  # natural but visibly calmer mouth motion
+0.55  # restrained presenter delivery
+```
+
+Do not use a 24 GB GPU with this image: the validated loader peaks above 40 GB
+of VRAM. The scale is applied equally to all audio-driven motion, so preserve
+gentle head/hand movement with the text prompt.
 
 For long jobs, use tmux:
 
